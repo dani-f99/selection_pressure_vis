@@ -6,8 +6,11 @@ library(jsonlite)
 # Reading the config file
 config_info <- fromJSON("config.json", simplifyVector = FALSE)
 input_folder <- config_info$input_folder
+input_dataset <- config_info$dataset
 output_folder <- config_info$output_folder
-metadata_list <- config_info$metadata_list
+metadata_list <- unlist(strsplit(config_info$metadata_list, ","))
+time_point <- config_info$time_point
+
 
 # Creating folders according the the congif.json
 folders = c(input_folder, 
@@ -58,39 +61,21 @@ Custom_V_By_Regions <- createRegionDefinition(
                                               )
 
 
-# user input for dataset type
-data_type_list <- list("motif", "all")
-time_type_list <- list("tp", "tpall")
-data_type <- "motif"
-time_type <- "tp"
-
-# Optional loop for user input if needed
-while_loop = FALSE
-if (while_loop == TRUE) {
-while (!(data_type %in% data_type_list) | !(time_type %in% time_type_list)) 
-        {
-        if (!(data_type %in% data_type_list)) {
-          data_type <- readline("What is the dataset, motif clones or all clones? (motif or all inputs only): ")
-                                               }
-        if (!(time_type %in% time_type_list)) {
-          time_type <- readline("Calculate each time-point sepertly (tp) or all togahter (tpall?)? (motif or all inputs only): ")
-                                               }
-        }
-}
-
+# Defining output name
+dataset_name <- strsplit(input_dataset, ".", fixed=TRUE)[[1]][1]
 current_time <- format(Sys.time(), "%Y-%m-%d_%H-%M-%S")     
-run_name <-  paste0(data_type, "_", time_type, "_[",current_time,"]")
+run_name <-  paste0(dataset_name, "_", time_points, "_[", current_time, "]")
 print(paste0(run_name, " Selected."))
 
 # Defining import and output paths
-input_path <- "datasets/"
-output_path <- "output/"
+input_path <- paste0(input_folder,"/")
+output_path <- paste0(output_folder,"/")
 
 ## Importing our sequences
-seqs <- read.csv(paste0(input_path, paste0("cl_seqs_",data_type,".csv")))
+seqs <- read.csv(paste0(input_path, input_dataset))
 seqs_df <- data.frame(seqs)
 
-# Modfing the naming scheme
+# Modefing the naming scheme
 colnames(seqs_df)[colnames(seqs_df) == 'sequence'] <- 'clonal_sequence'
 colnames(seqs_df)[colnames(seqs_df) == 'germline'] <- 'clonal_germline'
 
@@ -105,26 +90,26 @@ selection_analysis <- function(df_input) {
                            nproc=1)
   
   # Grouping the data by subject id and ab_target
-  grouped_2 <- groupBaseline(baseline, groupBy=c("subject_id","ab_target"))
-  
-  # Getting the statistical information about the baseline calculation
-  #baseline_stats <- testBaseline(grouped_2, groupBy=c("subject_id","ab_target"))
-  #write.csv(baseline_stats, paste0(output_path, run_name, "_baseline_stats.csv"))
+  grouped_baseline <- groupBaseline(baseline, 
+                                    groupBy=metadata_list)
   
   # Getting the mean and std.dev of the baseline calculation
-  baseline_values <- summarizeBaseline(grouped_2, returnType="df")
-  write.csv(baseline_values, paste0(output_path, run_name, "_baseline_values.csv"))
+  baseline_values <- summarizeBaseline(grouped_baseline, 
+                                       returnType="df")
+  write.csv(baseline_values,
+            paste0(output_folder, "/r_data/", run_name, "_baseline_values.csv"))
     
   # Plotting the baseline
-  baseline_plot <- plotBaselineSummary(grouped_2, "subject_id", "ab_target")
-  ggsave(paste0(output_path, run_name, "_baseline_plot.png"), plot = baseline_plot)
+  baseline_plot <- plotBaselineSummary(grouped_baseline, "subject_id", "ab_target")
+  ggsave(paste0(output_folder, "/r_figures/", run_name, "_baseline_values.csv"), 
+         plot = baseline_plot)
 }
 
 # CSV analysis by condition
-if (time_type == "tpall") {
+if (time_point == "all") {
   selection_analysis(seqs_df)
   
-} else if (time_type == "tp") {
+} else if (time_point == "sep") {
   unique_time_points <- unique(seqs_df$time_point)
   
   for (tp in unique_time_points) {
