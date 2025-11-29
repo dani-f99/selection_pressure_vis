@@ -64,8 +64,8 @@ The program uses the following folder structure:
 
 - input/  : Input folder. 
 - output/ : Result output, tables to be used in the LPA program. 
-           - output/r_figures : Generated figures. 
-           - output/r_data    : Generated data files. 
+- output/r_figures : Generated figures. 
+- output/r_data    : Generated data files. 
 		   
 ## 6. RESOUCES
 - Immcantation Website: https://shazam.readthedocs.io/en/stable/vignettes/Baseline-Vignette/
