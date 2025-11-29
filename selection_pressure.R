@@ -113,7 +113,7 @@ if (time_point == "all") {
   unique_time_points <- unique(seqs_df$time_point)
   
   for (tp in unique_time_points) {
-    run_name <-  paste0(data_type, "_", time_type, tp, "_[",current_time,"]")
+    run_name <-  paste0(dataset_name, "_",tp,"_", time_points, "_[", current_time, "]")
     temp_df <- seqs_df[seqs_df$time_point == tp,]
     selection_analysis(temp_df)
   }
