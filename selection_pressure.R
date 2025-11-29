@@ -13,7 +13,7 @@ metadata_list <- config_info$metadata_list
 folders = c(input_folder, 
             output_folder, 
             paste0(output_folder,"/r_figures"), 
-            output_folder,"/r_data")
+            paste0(output_folder,"/r_data"))
 
 for (f in folders) {
                     if (!dir.exists(f)) {dir.create(f)}
