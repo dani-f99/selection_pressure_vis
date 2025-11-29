@@ -9,8 +9,12 @@
 # PROJECT: Clonal Selection Pressure Analysis
 
 ## 1. OVERVIEW
-This program's objective is to process sequencing data of clones in order to
-analyze selection pressure metrics. 
+This program utilizes the shazam and alakazam packages from the Immcantation framework 
+to analyze the selection pressure of B-cell sequences. The pipeline assumes sequences 
+have already been preprocessed and assigned to clones; please refer to the Immcantation 
+tutorial for preprocessing guidance. Once the selection pressure analysis is complete, 
+default visualizations are generated. Users may also run the optional Python step for 
+advanced visualization.
 
 ## 2. PREREQUISITES
 Please ensure the following modules are installed:
@@ -62,3 +66,7 @@ The program uses the following folder structure:
 - output/ : Result output, tables to be used in the LPA program. 
            - output/r_figures : Generated figures. 
            - output/r_data    : Generated data files. 
+		   
+## 6. RESOUCES
+- Immcantation Website: https://shazam.readthedocs.io/en/stable/vignettes/Baseline-Vignette/
+- Immcantation GitHub: https://github.com/immcantation/shazam
