@@ -1,3 +1,5 @@
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 import numpy as np
 import pandas as pd
 import regex
@@ -31,10 +33,6 @@ def list_datasets(path:str = f"{read_json()["output_folder"]}\\r_data") -> list:
         print(i)
     
     return [f"{path}\\{i}" for i in csv_files]
-
-import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
-import pandas as pd
 
 # Plotting the selection bias according to the input dataset
 def plot_selection(dataset_path:str,
