@@ -145,7 +145,7 @@ def plot_selection(dataset_path:str,
         regex_pattern = r"\\r_data\\([\w\[\]\-]+).csv"
         name = regex.findall(regex_pattern, dataset_path)[0]
 
-        plt.savefig(f"{output_path}\\{name}.png")
+        plt.savefig(f"{output_path}\\{name}.png",  bbox_inches='tight')
         print(f"Plot saves as {name}")
 
     plt.show()
