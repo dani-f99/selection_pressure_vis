@@ -62,8 +62,16 @@ def plot_selection(dataset_path:str,
     dataset.subject_id = dataset.subject_id.apply(lambda X : f"Subject {X.split("_")[-1]}")
 
     # Defining Borders of the baseline points
-    dataset.baseline_ci_upper = (dataset.baseline_sigma - dataset.baseline_ci_upper).apply(abs)
-    dataset.baseline_ci_lower = (dataset.baseline_sigma - dataset.baseline_ci_lower).apply(abs)
+    dataset.baseline_ci_upper = (dataset.baseline_sigma.abs() - dataset.baseline_ci_upper.abs()).abs()
+    dataset.baseline_ci_lower = (dataset.baseline_sigma.abs() - dataset.baseline_ci_lower.abs()).abs()
+
+    # Calcualting the required y axis limit for the plot (highest order + 10%)
+    max = pd.concat([dataset.baseline_sigma.abs() + dataset.baseline_ci_lower.abs(),
+                     dataset.baseline_sigma.abs() + dataset.baseline_ci_upper.abs()]).max().round(1)
+    y_limit_border = round((max + max*0.1), 1)
+
+    if y_limit_border < 1.2:
+        y_limit_border = 1
 
     # Getting unique values for region and subjects
     regions = dataset.region.unique()
@@ -102,11 +110,11 @@ def plot_selection(dataset_path:str,
                                    capsize=10,
                                    label=target)
             
-            axs[ax_index].text(y=0.8,x=-0.15, s=regions[region], size=15)
+            axs[ax_index].text(y=0,x=len(subjects)-0.8, s=regions[region], size=15, rotation=-90)
 
             # Modifing the plot parameters
             axs[ax_index].axhline(y=0, ls="--", color="grey")
-            axs[ax_index].set_ylim(-1,1) 
+            axs[ax_index].set_ylim(-y_limit_border, y_limit_border) 
             axs[ax_index].tick_params(axis="y", labelsize=10)
 
             # Making the first and last major ticks inivisible      
@@ -132,6 +140,7 @@ def plot_selection(dataset_path:str,
                fontsize=13, 
                title=leg_title,
                title_fontsize=15)
+    
     plt.tight_layout()
 
     # Saving the figure
