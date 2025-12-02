@@ -119,9 +119,10 @@ def plot_selection(dataset_path:str,
 
             # Making the first and last major ticks inivisible      
             y_ticks = axs[ax_index].yaxis.get_major_ticks()
-            y_ticks[0].label1.set_visible(False) ## set first x tick label invisible
-            y_ticks[-1].label1.set_visible(False) ## set last x tick label invisible
+            y_ticks[0].set_visible(False) ## set first x tick label invisible
+            y_ticks[-1].set_visible(False) ## set last x tick label invisible
 
+            print(y_limit_border)
 
     # Setting title legend
     if metadata_split is None:
@@ -160,3 +161,44 @@ def plot_selection(dataset_path:str,
     plt.show()
 
     return dataset
+
+# Calculating the number of clones per defined sub-datasets
+class nclones_report():
+    
+    # Loading the class with the input dataframe used in the selection bias analysis
+    def __init__(self, 
+                 dataset_name :str):
+        """
+        dataset_input : str -> Name of the sequences dataset including the '.csv' .
+        """
+        self.reports_path = "output\\py_reports"
+        
+        self.dataset_name = dataset_name
+        self.csv_path = f"{read_json()["input_folder"]}\\{self.dataset_name}"
+        self.dataset = pd.read_csv(self.csv_path, index_col=0)
+
+    # Counting the number of unique clones per sub-dataset
+    def groupby_count(self,
+                      groupby_list :list,
+                      save_reports :bool = True):
+        """
+        groupby_list : list -> list-like object which contains the columns names in order to group by.
+        """
+        
+        dataset_gp =  self.dataset.groupby(groupby_list)
+        self.gp_result = dataset_gp.agg({"clone_id":"nunique",}).reset_index()
+        self.gp_result["seq_count"] = dataset_gp.size().reset_index()[0]
+        self.gp_result.columns =  groupby_list + ["unique_clones","seq_count"]
+
+        if save_reports:
+            if os.path.exists(self.reports_path) is False:
+                os.mkdir(self.reports_path)
+                print(f"Report folder was created at {self.reports_path}")
+        
+            self.gp_result.to_csv(f"{self.reports_path}\\{self.dataset_name.split(".")[0]}_nclones.csv")
+
+        return self.gp_result
+    
+    # Returning the sum of clones (all sub-datasets combined)
+    def get_sum_clones(self):
+        return self.gp_result.unique_clones.sum()
