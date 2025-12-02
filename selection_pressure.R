@@ -1,7 +1,10 @@
 ## Importing packages
-library(alakazam)
-library(shazam)
-library(jsonlite)
+suppressPackageStartupMessages({
+  library(alakazam)
+  library(shazam)
+  library(jsonlite)
+})
+
 
 # Reading the config file
 config_info <- fromJSON("config.json", simplifyVector = FALSE)
@@ -11,12 +14,23 @@ output_folder <- config_info$output_folder
 metadata_list <- unlist(strsplit(config_info$metadata_list, ","))
 time_point <- config_info$time_point
 
+if (length(metadata_list) == 1){
+  meta_groupby <- metadata_list[1]
+  meta_name <- meta_groupby
+
+} else if (length(metadata_list) == 2) {
+  meta_groupby <- metadata_list[1]
+  meta_name <- paste(metadata_list, collapse = "-")
+}
+
 
 # Creating folders according the the congif.json
-folders = c(input_folder, 
-            output_folder, 
-            paste0(output_folder,"/r_figures"), 
-            paste0(output_folder,"/r_data"))
+folders <- c(input_folder, 
+             output_folder, 
+             paste0(output_folder,"/r_figures"), 
+             paste0(output_folder,"/r_data"))
+
+
 
 for (f in folders) {
                     if (!dir.exists(f)) {dir.create(f)}
@@ -64,7 +78,7 @@ Custom_V_By_Regions <- createRegionDefinition(
 # Defining output name
 dataset_name <- strsplit(input_dataset, ".", fixed=TRUE)[[1]][1]
 current_time <- format(Sys.time(), "%Y-%m-%d_%H-%M-%S")     
-run_name <-  paste0(dataset_name, "_", time_points, "_[", current_time, "]")
+run_name <-  paste0(dataset_name,"-",meta_name , "-", time_point, "-[", current_time, "]")
 print(paste0(run_name, " Selected."))
 
 # Defining import and output paths
@@ -91,7 +105,7 @@ selection_analysis <- function(df_input) {
   
   # Grouping the data by subject id and ab_target
   grouped_baseline <- groupBaseline(baseline, 
-                                    groupBy=metadata_list)
+                                    groupBy=meta_groupby)
   
   # Getting the mean and std.dev of the baseline calculation
   baseline_values <- summarizeBaseline(grouped_baseline, 

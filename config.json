@@ -1,7 +1,7 @@
 {
 "input_folder": "input",
 "output_folder": "output",
-"metadata_list": "subject_id,ab_target",
-"dataset": "cl_seqs_4r.csv",
+"metadata_list": "ab_target",
+"dataset": "cl_seqs_motif.csv",
 "time_point": "all"
 }
