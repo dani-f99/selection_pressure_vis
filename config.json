@@ -3,5 +3,5 @@
 "output_folder": "output",
 "metadata_list": "ab_target",
 "dataset": "cl_seqs_motif.csv",
-"time_point": "all"
+"time_point": "sep"
 }

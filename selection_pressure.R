@@ -98,24 +98,28 @@ selection_analysis <- function(df_input) {
   
   # Creating baseline (expected and actual mutations)
   # Calculate selection scores from scratch
+  print("Calculating Baseline")
   baseline <- calcBaseline(df_input, 
                            testStatistic="focused", 
                            regionDefinition=Custom_V_By_Regions, 
                            nproc=1)
   
   # Grouping the data by subject id and ab_target
+  print("Grouping data")
   grouped_baseline <- groupBaseline(baseline, 
                                     groupBy=meta_groupby)
   
   # Getting the mean and std.dev of the baseline calculation
+  print("Calculating baseline values for grouped data")
   baseline_values <- summarizeBaseline(grouped_baseline, 
                                        returnType="df")
   write.csv(baseline_values,
             paste0(output_folder, "/r_data/", run_name, "_baseline_values.csv"))
     
   # Plotting the baseline
-  baseline_plot <- plotBaselineSummary(grouped_baseline, "subject_id", "ab_target")
-  ggsave(paste0(output_folder, "/r_figures/", run_name, "_baseline_values.csv"), 
+  print("Ploting Figure")
+  baseline_plot <- plotBaselineSummary(grouped_baseline, meta_groupby)
+  ggsave(paste0(output_folder, "/r_figures/", run_name, "_baseline_plot.png"), 
          plot = baseline_plot)
 }
 
@@ -127,7 +131,7 @@ if (time_point == "all") {
   unique_time_points <- unique(seqs_df$time_point)
   
   for (tp in unique_time_points) {
-    run_name <-  paste0(dataset_name, "_",tp,"_", time_points, "_[", current_time, "]")
+    run_name <- paste0(dataset_name,"-", meta_name , "-", time_point,"_", tp, "-[", current_time, "]")
     temp_df <- seqs_df[seqs_df$time_point == tp,]
     selection_analysis(temp_df)
   }
