@@ -1,3 +1,5 @@
+#################
+# Modules imports
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import numpy as np
@@ -7,6 +9,7 @@ import json
 import os
 
 
+##########################################################################################
 # Reading information from json file. Used to extract the parameters from the config.json.
 def read_json(path:str = "config.json") -> dict:
     """
@@ -19,6 +22,7 @@ def read_json(path:str = "config.json") -> dict:
     return config_f
 
 
+##########################################################################
 # Returning list of all the csv files in a folder with their complete path
 def list_datasets(path:str = f"{read_json()["output_folder"]}\\r_data") -> list:
     """   
@@ -34,32 +38,66 @@ def list_datasets(path:str = f"{read_json()["output_folder"]}\\r_data") -> list:
     
     return [f"{path}\\{i}" for i in csv_files]
 
+
+##################################################################################################
+# Getting array of number based on given input, used to create y ticks based on the maximal number
+def get_symticks(nval: float) -> np.array:
+    """
+    nval : float -> numerical value
+    """
+    abs_nval = abs(nval)
+    abs_max = abs_nval + (1 - abs_nval%1)
+    pos_range = np.arange(0, abs_max+1, 0.75)
+    y_ticks = np.sort(np.concat((-pos_range[1:],pos_range)))
+
+    return y_ticks
+
+
 # Plotting the selection bias according to the input dataset
 def plot_selection(dataset_path:str,
                    save_fig:bool = True,
                    grouped_by:list = None,
-                   metadata_split:str = None):
+                   metadata_split:str = None,
+                   rename_xaxis:str = None):
     """
     dataset : str -> Path of the source dataset (output of the 'selection_pressure.R' script).
     save_fig : bool -> to save the figure? if True the figure will be saved into 'output/py_figures' folder.
     grouped_by : list -> Found in the config.json, according to which metadata to order the plot.
-    metadata_split : Name of the metadata we grouped the data by, in this case antibody target (ab_target).
+    metadata_split : str - > Name of the metadata we grouped the data by, in this case antibody target (ab_target).
+    rename_xaxis : str -> String to rename x-axis in the plot (xlabel).
     """
-
-    # Getting the metadata column names from the config, if there was no user input.
-    if grouped_by is None:
-        try:
-            metadata_list = read_json()["metadata_list"].split(",")
-            grouped_by2 = metadata_list[1]
-
-        except:
-            metadata_list = read_json()["metadata_list"]
-            grouped_by2 = metadata_list
-
 
     # Importing the dataset
     dataset = pd.read_csv(dataset_path, index_col=0)
-    dataset.subject_id = dataset.subject_id.apply(lambda X : f"Subject {X.split("_")[-1]}")
+
+    # Importing the metadata list, if single value than it will be the only object in the list
+    try: 
+        metadata_list = read_json()["metadata_list"].split(",")
+        grouped_by2 = metadata_list[1]
+
+    except:
+        metadata_list = [read_json()["metadata_list"]]
+        grouped_by2 = metadata_list[0]
+
+    metadata_list = [i for i in metadata_list if i in dataset.columns]
+
+    #if user defined grouped by column by the grouped by argument
+    if grouped_by is not None:
+        metadata_list = grouped_by
+        grouped_by2 = metadata_list[0]
+
+    
+    # Defining label if subject are united
+    x_label = metadata_list[0]
+    if "subject_id" in metadata_list:
+        try:
+            x_label = "subject_id"
+            dataset.subject_id = dataset.subject_id.apply(lambda X : f"Subject {X.split("_")[-1]}")
+        except:
+            print("Dataset was not grouped by 'subject_id', attempting to use the second grouped by value.")
+
+    number = len(dataset[x_label].unique())
+        
 
     # Defining Borders of the baseline points
     dataset.baseline_ci_upper = (dataset.baseline_sigma.abs() - dataset.baseline_ci_upper.abs()).abs()
@@ -75,29 +113,35 @@ def plot_selection(dataset_path:str,
 
     # Getting unique values for region and subjects
     regions = dataset.region.unique()
-    subjects = dataset.subject_id.unique()
+    target_unique = dataset[grouped_by2].unique()
 
     # Creating figure object
-    fig = plt.figure(figsize = (1.5*len(subjects), 2.5*len(regions)))
+    fig = plt.figure(figsize = (7, 10))
     gs = fig.add_gridspec(len(regions)-1, hspace=0)
     axs = gs.subplots(sharex=True, sharey=True)
     colors = list(mcolors.TABLEAU_COLORS)
 
     # Itirating over the different conditions and plotting the results
-    for region in range(1, len(regions[1:])+1):       
-        for target, cl in zip(dataset[grouped_by2].unique(), range(0, len(colors))):
+    for region in range(1, len(regions[1:])+1):     
+        for target, cl in zip(target_unique, range(0, len(colors))):
             ax_index = region - 1
 
             if __name__ == "__main__":
-                print(region, regions[region], target, cl)
-
+                print(region, regions[region], target, cl, x_label)
+                print(metadata_list, list(dataset.columns[-4:]))
+                print("Number: ",number, number%2)
+                
             # Getting dataset for specific region in specific ab_target (this case).
             cond_region = (dataset.region == regions[region])
             cond_target = (dataset[grouped_by2] == target)
+            
+            if type(metadata_list) != list:
+                metadata_list = [metadata_list]
+
             temp_dataset = dataset.loc[(cond_region & cond_target), metadata_list + list(dataset.columns[-4:])]
 
             # Plottig each sub-dataset
-            axs[ax_index].errorbar(x=temp_dataset["subject_id"],
+            axs[ax_index].errorbar(x=temp_dataset[x_label],
                                    y=temp_dataset["baseline_sigma"],
                                    yerr=temp_dataset[["baseline_ci_lower","baseline_ci_upper"]].T.values,
                                    linestyle="",
@@ -110,19 +154,29 @@ def plot_selection(dataset_path:str,
                                    capsize=10,
                                    label=target)
             
-            axs[ax_index].text(y=0,x=len(subjects)-0.8, s=regions[region], size=15, rotation=-90)
+            # Region label
+            axs[ax_index].text(y=0, x=number+0.1, s=regions[region], size=15, rotation=-90)
 
             # Modifing the plot parameters
             axs[ax_index].axhline(y=0, ls="--", color="grey")
-            axs[ax_index].set_ylim(-y_limit_border, y_limit_border) 
+            y_ticks_array = get_symticks(y_limit_border)
+            axs[ax_index].set_yticks(y_ticks_array)
+
+            # Defining limits of x-axis bases on number of columns
+            axs[ax_index].set_xlim( -1 , number )
             axs[ax_index].tick_params(axis="y", labelsize=10)
+
+            major_yticks  =  axs[ax_index].get_yticks() 
 
             # Making the first and last major ticks inivisible      
             y_ticks = axs[ax_index].yaxis.get_major_ticks()
             y_ticks[0].set_visible(False) ## set first x tick label invisible
             y_ticks[-1].set_visible(False) ## set last x tick label invisible
+    
+    if isinstance(rename_xaxis, str):
+        x_label = rename_xaxis
 
-            print(y_limit_border)
+    axs[-1].set_xlabel(x_label, fontsize=12)
 
     # Setting title legend
     if metadata_split is None:
@@ -131,16 +185,16 @@ def plot_selection(dataset_path:str,
         leg_title = metadata_split
     
     # Figure parameters
-    fig.supylabel("Selection Pressure Bias (Σ)", size=18)
-    fig.supxlabel("Subject", size=18)
+    fig.supylabel("Selection Pressure Bias (Σ)", size=12)
     ax_h, ax_l = axs[0].get_legend_handles_labels()
-    fig.legend(ax_h, ["Spike Negative", "Spike Positive"], 
+    fig.legend(ax_h, 
+               target_unique, 
                ncols=2, 
                loc="upper center", 
                bbox_to_anchor=(0.55,1.05), 
-               fontsize=13, 
+               fontsize=10, 
                title=leg_title,
-               title_fontsize=15)
+               title_fontsize=12)
     
     plt.tight_layout()
 
@@ -162,6 +216,8 @@ def plot_selection(dataset_path:str,
 
     return dataset
 
+
+###########################################################
 # Calculating the number of clones per defined sub-datasets
 class nclones_report():
     
