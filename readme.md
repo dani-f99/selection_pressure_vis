@@ -27,7 +27,8 @@ Please ensure the following modules are installed:
 ### Required Python Modules:
 - Pandas 
 - NumPy 
-- Matplotlib  
+- Matplotlib 
+- Seaborn 
 
 ## 3. CONFIGURATION (config.json)
 Before running the analysis, configure the `config.json` file as follows: 
