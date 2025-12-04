@@ -106,7 +106,7 @@ def plot_selection(dataset_path:str,
 
     metadata_list = [i for i in metadata_list if i in dataset.columns]
     dataset[metadata_list] = dataset[metadata_list].astype("str")
-    dataset = dataset.sort_values(["time_point", "ab_target"])
+    dataset = dataset.sort_values(metadata_list)
 
     #if user defined grouped by column by the grouped by argument
     if grouped_by is not None:
