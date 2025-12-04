@@ -132,7 +132,7 @@ selection_analysis <- function(df_input) {
                      "_baseline_plot.png"), 
                plot = baseline_plot)
 
-  } elif (length(meta_groupby) == 2){
+  } else if (length(meta_groupby) == 2){
     
         baseline_plot <- plotBaselineSummary(grouped_baseline, meta_groupby[1], meta_groupby[2]) 
         ggsave(paste0(output_folder, 
