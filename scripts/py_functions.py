@@ -46,25 +46,50 @@ def get_symticks(nval: float) -> np.array:
     nval : float -> numerical value
     """
     abs_nval = abs(nval)
-    abs_max = abs_nval + (1 - abs_nval%1)
-    pos_range = np.arange(0, abs_max+1, 0.75)
+    abs_max = abs_nval
+    pos_range = np.arange(-abs_nval, abs_max, 0.75)
     y_ticks = np.sort(np.concat((-pos_range[1:],pos_range)))
 
     return y_ticks
 
 
+####################################################
+# Return jittered array, can be used as x-axis input
+np.random.seed(42)
+def jitter(array_size : int,
+           array_n : int) -> np.array:
+    """
+    array_size: int -> length of the 1 array to be jittered
+    array_n : int -> value of the arary to be jittered
+    """
+    rng = np.random.default_rng(seed=42)
+
+
+    if array_n == 0:
+        random_multi = rng.uniform(low=-0.2, high=0.2, size=(1, array_size))
+
+    else:
+        random_multi = rng.uniform(low=0.8, high=1.2, size=(1, array_size)) 
+        random_multi = random_multi * np.ones(array_size) * array_n
+    
+    return random_multi[0]
+
+
+############################################################
 # Plotting the selection bias according to the input dataset
 def plot_selection(dataset_path:str,
                    save_fig:bool = True,
                    grouped_by:list = None,
                    metadata_split:str = None,
-                   rename_xaxis:str = None):
+                   rename_xaxis:str = None,
+                   xjitter:bool=False):
     """
     dataset : str -> Path of the source dataset (output of the 'selection_pressure.R' script).
     save_fig : bool -> to save the figure? if True the figure will be saved into 'output/py_figures' folder.
     grouped_by : list -> Found in the config.json, according to which metadata to order the plot.
     metadata_split : str - > Name of the metadata we grouped the data by, in this case antibody target (ab_target).
     rename_xaxis : str -> String to rename x-axis in the plot (xlabel).
+    jitter : bool -> If True the x-axis values will be jittered for clearer visualization.
     """
 
     # Importing the dataset
@@ -80,6 +105,8 @@ def plot_selection(dataset_path:str,
         grouped_by2 = metadata_list[0]
 
     metadata_list = [i for i in metadata_list if i in dataset.columns]
+    dataset[metadata_list] = dataset[metadata_list].astype("str")
+    dataset = dataset.sort_values(["time_point", "ab_target"])
 
     #if user defined grouped by column by the grouped by argument
     if grouped_by is not None:
@@ -96,8 +123,9 @@ def plot_selection(dataset_path:str,
         except:
             print("Dataset was not grouped by 'subject_id', attempting to use the second grouped by value.")
 
-    number = len(dataset[x_label].unique())
-        
+    unique_x = dataset[x_label].unique()
+    number_x = len(unique_x)
+    
 
     # Defining Borders of the baseline points
     dataset.baseline_ci_upper = (dataset.baseline_sigma.abs() - dataset.baseline_ci_upper.abs()).abs()
@@ -108,7 +136,7 @@ def plot_selection(dataset_path:str,
                      dataset.baseline_sigma.abs() + dataset.baseline_ci_upper.abs()]).max().round(1)
     y_limit_border = round((max + max*0.1), 1)
 
-    if y_limit_border < 1.2:
+    if y_limit_border < 1.5:
         y_limit_border = 1
 
     # Getting unique values for region and subjects
@@ -125,12 +153,7 @@ def plot_selection(dataset_path:str,
     for region in range(1, len(regions[1:])+1):     
         for target, cl in zip(target_unique, range(0, len(colors))):
             ax_index = region - 1
-
-            if __name__ == "__main__":
-                print(region, regions[region], target, cl, x_label)
-                print(metadata_list, list(dataset.columns[-4:]))
-                print("Number: ",number, number%2)
-                
+              
             # Getting dataset for specific region in specific ab_target (this case).
             cond_region = (dataset.region == regions[region])
             cond_target = (dataset[grouped_by2] == target)
@@ -140,8 +163,21 @@ def plot_selection(dataset_path:str,
 
             temp_dataset = dataset.loc[(cond_region & cond_target), metadata_list + list(dataset.columns[-4:])]
 
+            if __name__ == "__main__":
+                print(region, regions[region], target, cl, x_label)
+                print(f"X-axis: {temp_dataset[x_label].values} ")
+                print(f"Y-axis: {temp_dataset["baseline_sigma"].values} ")
+
+            if xjitter is True:
+                len_x = temp_dataset[x_label].values.shape[0]
+                og_val = cl
+                x_input = jitter(len_x, og_val)
+
+            else:
+                x_input = temp_dataset[x_label]
+
             # Plottig each sub-dataset
-            axs[ax_index].errorbar(x=temp_dataset[x_label],
+            axs[ax_index].errorbar(x= x_input,
                                    y=temp_dataset["baseline_sigma"],
                                    yerr=temp_dataset[["baseline_ci_lower","baseline_ci_upper"]].T.values,
                                    linestyle="",
@@ -154,19 +190,32 @@ def plot_selection(dataset_path:str,
                                    capsize=10,
                                    label=target)
             
+            # Resetting x-labels if jitter is applied
+            if xjitter is True:
+                # Setting initial x-axis labels
+                xaxis_ph = np.arange(-1, number_x)
+                axs[ax_index].set_xticks(xaxis_ph)
+
+                # Creating the x-labels
+                tlist = unique_x
+                tdict = {i:j for i,j in zip(range(0,len(tlist)),tlist)}
+                final_list = [""] + [tdict[i] if i in tdict else "" for i in xaxis_ph[1:]]
+        
+                # Setting the updated x-lbals
+                axs[ax_index].set_xticklabels(final_list)
+
             # Region label
-            axs[ax_index].text(y=0, x=number+0.1, s=regions[region], size=15, rotation=-90)
+            axs[ax_index].text(y=0, x=number_x +0.1, s=regions[region], size=15, rotation=-90)
 
             # Modifing the plot parameters
             axs[ax_index].axhline(y=0, ls="--", color="grey")
             y_ticks_array = get_symticks(y_limit_border)
-            axs[ax_index].set_yticks(y_ticks_array)
+            axs[ax_index].set_yticks(np.linspace(-y_limit_border, y_limit_border, 7).round(1))
+            ####axs[ax_index].set_ylim(-y_limit_border, y_limit_border)
 
             # Defining limits of x-axis bases on number of columns
-            axs[ax_index].set_xlim( -1 , number )
+            axs[ax_index].set_xlim( -1 , number_x)
             axs[ax_index].tick_params(axis="y", labelsize=10)
-
-            major_yticks  =  axs[ax_index].get_yticks() 
 
             # Making the first and last major ticks inivisible      
             y_ticks = axs[ax_index].yaxis.get_major_ticks()
