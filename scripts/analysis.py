@@ -2,6 +2,7 @@
 # Modules imports
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
+import seaborn as sns
 import numpy as np
 import pandas as pd
 import regex
@@ -198,6 +199,110 @@ def plot_selection(dataset_path:str,
     plt.show()
 
     return dataset
+
+#########################################################################################################################
+# Scatter plot of input dataframe, will group by seleted column and color the dots based on their value on another column.
+def scatter_colored(df_path : str,
+                    group_by : str,
+                    color_by : str,
+                    ylim : tuple = None,
+                    drop_null : bool = True,
+                    save_fig = True):
+    
+    """
+    df_path : str -> Path of the input dataframe.
+    group by : str -> The dataframe will be grouped by this column and it'll serve as the x-axis.
+    color_by : str ->The dataframe will scatterplot dots will be colored by this column.
+    y_lim : numeric tuple -> Manually change the y-axis limit for all of the sub-plots.
+    drop_naull : bool -> Drop null rows in the input dtaframe, defualt is True.
+    save_fig : bool -> Save the figure into the 'output\\py_figures' folder, defualt it True.
+    """
+
+    # Load the dataframe
+    df = pd.read_csv(df_path).sort_values([color_by, group_by])
+
+    # Dropping null rows if needed (leave True for best results)
+    if drop_null:
+        df = df.dropna()
+
+    # Convert time_point to string to ensure discrete coloring
+    df[[group_by,color_by]] = df[[group_by,color_by]].astype(str)
+
+    # Configure seed for jitter replicibality
+    np.random.seed(42)
+
+    # Create the plot with vertical subplots (5 rows, 1 column)
+    gfig = sns.catplot(
+           data=df,
+           x=group_by,                              # Group by column
+           y="baseline_sigma",                      # Y-axis values
+           row="region",                            # Use row for vertical stacking
+           hue=color_by,                            # Color by columns
+           kind="strip",                            # Strip plot creates the scatter effect
+           jitter=0.2,                              # Adds jitter to x-axis values for clarity
+           height=3,                                # Height of each subplot
+           aspect=0.75*len(df[group_by].unique()),  # Aspect ratio (Width / Height)
+           palette="deep",
+           sharex=True,                              # Share X axis
+           sharey=False,                             # Allow Y axis to scale independently for each region
+           size=8,                                   # Sctter markers size
+           edgecolor='black',                        # edge color of the markers
+           linewidth=0.8,                            # line-width of the markers
+           legend=True                               # Create legend
+                       )
+
+    # Configuring each sub-plot ax sepertly
+    for ax, region in zip(gfig.axes.flat, df.region.unique()): 
+
+        # Setting custom y-axis ticks by limit
+        if isinstance(ylim, tuple):
+            ax.set_ylim(ylim)
+
+        ax.text(x=len(df[group_by].unique())-0.5, y=0, s=region, rotation=-90, fontsize=12) # Region text on each sub-plot
+        ax.axhline(y=0, color="grey", alpha=0.75, ls="--") # Added horizintal line
+
+        # Removing first and last y-axis ticks for better clearity
+        y_ticks = ax.yaxis.get_major_ticks() # Getting y-ticks
+        y_ticks[0].set_visible(False) ## set first x tick label invisible
+        y_ticks[-1].set_visible(False) ## set last x tick label invisible
+        ax.tick_params(axis="both", labelsize=12)
+    
+    # Overwriting defualt values -> removing x and y axis labels
+    gfig.set_titles("") # Add titles to each subplot mentioning the region
+    gfig.set_axis_labels("", "") # Adjust axis labels
+    
+    # Super-label for both X and Y axis (fig-level)
+    gfig.fig.supylabel("Baseline Sigma", x=0.02, fontsize=15)
+    gfig.fig.supxlabel("ab_target", y=0.02, fontsize=15)
+
+    # Moving the legend object to the top of the figure and adjusting parameters
+    sns.move_legend(gfig,
+                    loc="upper center",
+                    bbox_to_anchor=(0.55,1.05), 
+                    fontsize=10, 
+                    title=color_by,
+                    title_fontsize=12,
+                    ncols=len(df[color_by].unique()),
+                    frameon=True)
+
+    
+    plt.tight_layout() # Adjust layout to prevent overlap
+
+    # Saving the figure
+    if save_fig:
+        output_path = "output\\py_figures"
+
+        if os.path.exists(output_path) is False:
+            os.mkdir(output_path)
+            print(f"{output_path} folder was created.")
+        
+        regex_pattern = r"\\r_data\\([\w\[\]\-]+).csv"
+        name = regex.findall(regex_pattern, df_path)[0]
+
+        plt.savefig(f"{output_path}\\{name}_colored.png",  bbox_inches='tight')
+        print(f"Plot saves as {name}")
+
+    plt.show()
 
 
 ###########################################################
