@@ -207,10 +207,11 @@ def scatter_colored(df_path : str,
                     color_by : str,
                     ylim : tuple = None,
                     drop_null : bool = True,
-                    save_fig = True):
+                    save_fig = True,
+                    map_cols : dict = None):
     
     """
-    df_path : str -> Path of the input dataframe.
+    df_input : str -> Path of the input dataframe in srting format or pd.DataFrame object.
     group by : str -> The dataframe will be grouped by this column and it'll serve as the x-axis.
     color_by : str ->The dataframe will scatterplot dots will be colored by this column.
     y_lim : numeric tuple -> Manually change the y-axis limit for all of the sub-plots.
@@ -218,8 +219,12 @@ def scatter_colored(df_path : str,
     save_fig : bool -> Save the figure into the 'output\\py_figures' folder, defualt it True.
     """
 
-    # Load the dataframe
     df = pd.read_csv(df_path).sort_values([color_by, group_by])
+
+    if isinstance(map_cols, dict):
+        for mp in map_cols:
+            df[mp] = df[mp].map(map_cols[mp])
+
 
     # Dropping null rows if needed (leave True for best results)
     if drop_null:
@@ -260,20 +265,29 @@ def scatter_colored(df_path : str,
 
         ax.text(x=len(df[group_by].unique())-0.5, y=0, s=region, rotation=-90, fontsize=12) # Region text on each sub-plot
         ax.axhline(y=0, color="grey", alpha=0.75, ls="--") # Added horizintal line
+        
+        for n in range(0, len(df[group_by].unique())):
+            ax.axvline(x=n, color="grey", alpha=0.2)
+
+
+        ax.axhline(y=0, color="grey", alpha=0.75, ls="--") # Added horizintal line
 
         # Removing first and last y-axis ticks for better clearity
         y_ticks = ax.yaxis.get_major_ticks() # Getting y-ticks
         y_ticks[0].set_visible(False) ## set first x tick label invisible
         y_ticks[-1].set_visible(False) ## set last x tick label invisible
         ax.tick_params(axis="both", labelsize=12)
+
+        # Removing x-ticks for all subplot except the last one (bottom)
+        if ax != gfig.axes.flat[-1]:
+            ax.xaxis.set_visible(False)
     
     # Overwriting defualt values -> removing x and y axis labels
     gfig.set_titles("") # Add titles to each subplot mentioning the region
-    gfig.set_axis_labels("", "") # Adjust axis labels
+    gfig.set_axis_labels("ab_target", "", fontsize=15) # Adjust axis labels
     
-    # Super-label for both X and Y axis (fig-level)
-    gfig.fig.supylabel("Baseline Sigma", x=0.02, fontsize=15)
-    gfig.fig.supxlabel("ab_target", y=0.02, fontsize=15)
+    # Super-label for both  Y axis (fig-level)
+    gfig.fig.supylabel("Baseline Sigma (Σ)", x=0.02, fontsize=15)
 
     # Moving the legend object to the top of the figure and adjusting parameters
     sns.move_legend(gfig,
@@ -285,8 +299,8 @@ def scatter_colored(df_path : str,
                     ncols=len(df[color_by].unique()),
                     frameon=True)
 
-    
-    plt.tight_layout() # Adjust layout to prevent overlap
+    # Adjust layout to prevent overlap
+    plt.tight_layout(h_pad=0, w_pad=0) 
 
     # Saving the figure
     if save_fig:
