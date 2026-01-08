@@ -208,6 +208,7 @@ def scatter_colored(df_path : str,
                     ylim : tuple = None,
                     drop_null : bool = True,
                     save_fig = True,
+                    fig_name = None,
                     map_cols : dict = None):
     
     """
@@ -310,8 +311,14 @@ def scatter_colored(df_path : str,
             os.mkdir(output_path)
             print(f"{output_path} folder was created.")
         
-        regex_pattern = r"\\r_data\\([\w\[\]\-]+).csv"
-        name = regex.findall(regex_pattern, df_path)[0]
+        try:
+            regex_pattern = r"\\r_data\\([\w\[\]\-]+).csv"
+            name = regex.findall(regex_pattern, df_path)[0]
+        except:
+            if isinstance(fig_name, str):
+                name = fig_name
+            else:
+                raise Exception("Please enter figure name.")
 
         plt.savefig(f"{output_path}\\{name}_colored.png",  bbox_inches='tight')
         print(f"Plot saves as {name}")
