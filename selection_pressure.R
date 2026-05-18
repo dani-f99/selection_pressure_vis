@@ -94,8 +94,26 @@ seqs <- read.csv(paste0(input_path, input_dataset))
 seqs_df <- data.frame(seqs)
 
 # Modefing the naming scheme
-colnames(seqs_df)[colnames(seqs_df) == 'sequence'] <- 'clonal_sequence'
-colnames(seqs_df)[colnames(seqs_df) == 'germline'] <- 'clonal_germline'
+###colnames(seqs_df)[colnames(seqs_df) == 'sequence'] <- 'clonal_sequence'
+###colnames(seqs_df)[colnames(seqs_df) == 'germline'] <- 'clonal_germline'
+print("Creating clonal sequences")
+
+# Collapse clonal groups into single sequences
+clones <- collapseClones(seqs_df, 
+                         cloneColumn="clone_id", 
+                         sequenceColumn="sequence", 
+                         germlineColumn="germline", 
+                         regionDefinition=Custom_V_By_Regions, 
+                         method="thresholdedFreq", 
+                         minimumFrequency=0.6,
+                         includeAmbiguous=FALSE, 
+                         breakTiesStochastic=FALSE, 
+                         nproc=1)
+
+# Replace 'N' and '-' with '.' in the germline and sequence column
+clones$clonal_sequence <- gsub("N|-", ".", clones$clonal_sequence, ignore.case = TRUE)
+clones$clonal_germline <- gsub("N|-", ".", clones$clonal_germline, ignore.case = TRUE)
+
 
 # Custom function of the 
 selection_analysis <- function(df_input) {
@@ -146,20 +164,20 @@ selection_analysis <- function(df_input) {
 
 loop_timepoint <- FALSE
 if (loop_timepoint == FALSE){
-  selection_analysis(seqs_df)
+  selection_analysis(clones)
   
 } else if (loop_timepoint == TRUE){
   
       # CSV analysis by condition
       if (time_point == "all") {
-          selection_analysis(seqs_df)
+          selection_analysis(clones)
 
       } else if (time_point == "sep") {
-            unique_time_points <- unique(seqs_df$time_point)
+            unique_time_points <- unique(clones$time_point)
   
             for (tp in unique_time_points) {
                 run_name <- paste0(dataset_name,"-", meta_name , "-", time_point,"_", tp, "-[", current_time, "]")
-                temp_df <- seqs_df[seqs_df$time_point == tp,]
+                temp_df <- clones[clones$time_point == tp,]
                 selection_analysis(temp_df)
                                            }
                                        }
