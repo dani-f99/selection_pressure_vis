@@ -3,5 +3,5 @@
 "output_folder": "output",
 "metadata_list": "subject_id,ab_target",
 "dataset": "cleaned_seqs_all_seq.csv",
-"time_point": "all"
+"time_point": "sep"
 }

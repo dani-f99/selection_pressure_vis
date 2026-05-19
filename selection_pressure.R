@@ -162,7 +162,7 @@ selection_analysis <- function(df_input) {
 }
 
 
-loop_timepoint <- FALSE
+loop_timepoint <- TRUE
 if (loop_timepoint == FALSE){
   selection_analysis(clones)
   
