@@ -19,7 +19,7 @@ if (length(metadata_list) == 1){
   meta_name <- meta_groupby
 
 } else if ((length(metadata_list) == 2) & (time_point == "sep")) {
-  meta_groupby <- metadata_list[1]
+  meta_groupby <- metadata_list
   meta_name <- paste(metadata_list, collapse = "-")
 
 } else {
