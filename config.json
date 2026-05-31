@@ -2,6 +2,6 @@
 "input_folder": "input",
 "output_folder": "output",
 "metadata_list": "ab_target,time_point",
-"dataset": "cleaned_seqs_all_seq.csv",
+"dataset": "cleaned_seqs_all_seq_no7.csv",
 "time_point": "all"
 }
